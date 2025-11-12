@@ -1,0 +1,581 @@
+<script>
+	import { onMount, onDestroy } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { isAuthenticated } from '$lib/stores.js';
+	import dayjs from 'dayjs';
+
+	let summary = null;
+	let loading = true;
+	let selectedDate = dayjs().format('YYYY-MM-DD');
+	let refreshInterval = null;
+
+	onMount(() => {
+		if (!$isAuthenticated) {
+			goto('/login');
+		} else {
+			loadSummary();
+			// Refresh summary every 30 seconds to update active timers
+			refreshInterval = setInterval(loadSummary, 30000);
+		}
+	});
+
+	onDestroy(() => {
+		if (refreshInterval) {
+			clearInterval(refreshInterval);
+		}
+	});
+
+	async function loadSummary() {
+		loading = true;
+		try {
+			const response = await fetch(`/api/summary?date=${selectedDate}`);
+			if (response.ok) {
+				summary = await response.json();
+			}
+		} catch (error) {
+			console.error('Failed to load summary:', error);
+		} finally {
+			loading = false;
+		}
+	}
+
+	function formatTime(seconds) {
+		const hours = Math.floor(seconds / 3600);
+		const minutes = Math.floor((seconds % 3600) / 60);
+		const secs = seconds % 60;
+		if (hours > 0) {
+			return `${hours}h ${minutes}m ${secs}s`;
+		}
+		return `${minutes}m ${secs}s`;
+	}
+
+	function formatElapsedTime(startTime) {
+		const elapsed = Math.floor((new Date() - new Date(startTime)) / 1000);
+		return formatTime(elapsed);
+	}
+
+	function formatDateTime(dateTime) {
+		return dayjs(dateTime).format('HH:mm:ss');
+	}
+
+	$: if (selectedDate) {
+		loadSummary();
+	}
+</script>
+
+<div class="summary-page">
+	<div class="summary-container">
+		<h1>Daily Summary</h1>
+		
+		{#if loading}
+			<div class="loading">Loading...</div>
+		{:else if summary}
+			<div class="summary-layout">
+				<!-- Left Column: Daily Summary Stats -->
+				<div class="summary-left">
+					<div class="summary-section">
+						<h2 class="section-title">📊 Daily Summary</h2>
+						
+						<div class="date-selector">
+							<label for="date">Select Date:</label>
+							<input
+								type="date"
+								id="date"
+								bind:value={selectedDate}
+								max={dayjs().format('YYYY-MM-DD')}
+								class="beautiful-date-picker"
+							/>
+						</div>
+
+						<div class="summary-grid">
+							<div class="summary-card">
+								<h3>Total Time Tracked</h3>
+								<p class="stat-value">{formatTime(summary.totalTime)}</p>
+							</div>
+							<div class="summary-card">
+								<h3>Completed Tasks</h3>
+								<p class="stat-value">{summary.completedTasks}</p>
+							</div>
+							<div class="summary-card">
+								<h3>In Progress</h3>
+								<p class="stat-value">{summary.inProgressTasks}</p>
+							</div>
+							<div class="summary-card">
+								<h3>Pending</h3>
+								<p class="stat-value">{summary.pendingTasks}</p>
+							</div>
+							<div class="summary-card">
+								<h3>Tasks Worked On</h3>
+								<p class="stat-value">{summary.tasksWorkedOn}</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Right Column: Currently Running & Time Logs -->
+				<div class="summary-right">
+					{#if summary.activeTimers && summary.activeTimers.length > 0}
+						<div class="active-timers-section">
+							<h2 class="section-title">🔴 Currently Running</h2>
+							<div class="active-timers-list">
+								{#each summary.activeTimers as timer}
+									<div class="active-timer-item">
+										<div class="timer-info">
+											<h4>{timer.taskTitle}</h4>
+											<p class="timer-start">
+												Started at: {formatDateTime(timer.startTime)}
+											</p>
+										</div>
+										<div class="timer-display">
+											<span class="timer-icon">⏱️</span>
+											<span class="timer-duration">{formatElapsedTime(timer.startTime)}</span>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{:else}
+						<div class="no-running-section">
+							<h2 class="section-title">🔴 Currently Running</h2>
+							<div class="no-active-tasks">
+								<p>No tasks currently running</p>
+							</div>
+						</div>
+					{/if}
+
+					{#if summary.timeLogs.length > 0}
+						<div class="time-logs-section">
+							<h2 class="section-title">⏰ Time Logs</h2>
+							<div class="time-logs-list">
+								{#each summary.timeLogs as log}
+									<div class="time-log-item">
+										<div class="log-info">
+											<h4>{log.taskTitle}</h4>
+											<p class="log-time">
+												{formatDateTime(log.startTime)} - {formatDateTime(log.endTime)}
+											</p>
+										</div>
+										<div class="log-duration">
+											{formatTime(log.duration)}
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{:else}
+						<div class="time-logs-section">
+							<h2 class="section-title">⏰ Time Logs</h2>
+							<div class="no-logs">No time logs for this date</div>
+						</div>
+					{/if}
+				</div>
+			</div>
+		{/if}
+	</div>
+</div>
+
+<style>
+	.summary-page {
+		padding: var(--space-8);
+		min-height: 100vh;
+	}
+
+	.summary-container {
+		background: rgba(255, 255, 255, 0.1);
+		backdrop-filter: blur(20px);
+		border-radius: var(--radius-xl);
+		padding: var(--space-8);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		box-shadow: var(--shadow-xl);
+		max-width: 1600px;
+		margin: 0 auto;
+	}
+
+	.summary-container::before {
+		content: none;
+	}
+
+	.summary-container h1 {
+		margin-bottom: var(--space-6);
+		color: white;
+		font-size: 2rem;
+		font-weight: 700;
+		text-align: center;
+		background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	/* Two Column Layout */
+	.summary-layout {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--space-8);
+		align-items: start;
+	}
+
+	.summary-left,
+	.summary-right {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-6);
+	}
+
+	.summary-section {
+		background: rgba(255, 255, 255, 0.08);
+		backdrop-filter: blur(15px);
+		border-radius: var(--radius-xl);
+		padding: var(--space-6);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		box-shadow: var(--shadow-md);
+	}
+
+	.section-title {
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: white;
+		margin-bottom: var(--space-6);
+		text-align: center;
+		padding-bottom: var(--space-3);
+		border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+	}
+
+	/* Beautiful Calendar Styling */
+	.date-selector {
+		margin-bottom: var(--space-6);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-5);
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: var(--radius-lg);
+		border: 2px solid rgba(255, 255, 255, 0.2);
+	}
+
+	.date-selector label {
+		font-weight: 600;
+		color: rgba(255, 255, 255, 0.9);
+		font-size: 1.1rem;
+		margin-bottom: var(--space-2);
+	}
+
+	.beautiful-date-picker {
+		padding: var(--space-4) var(--space-6);
+		border: 3px solid rgba(255, 255, 255, 0.3);
+		border-radius: var(--radius-lg);
+		font-size: 1.1rem;
+		font-weight: 600;
+		background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
+		backdrop-filter: blur(10px);
+		color: #000000 !important;
+		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		cursor: pointer;
+		position: relative;
+		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+	}
+
+	.beautiful-date-picker:focus {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3), 0 8px 25px rgba(0, 0, 0, 0.2);
+		transform: translateY(-3px) scale(1.02);
+		background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.95) 100%);
+	}
+
+	.beautiful-date-picker:hover {
+		border-color: rgba(99, 102, 241, 0.5);
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+	}
+
+	/* Custom calendar icon styling */
+	.beautiful-date-picker::-webkit-calendar-picker-indicator {
+		background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236366f1"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>');
+		background-size: 24px;
+		background-repeat: no-repeat;
+		cursor: pointer;
+		padding: var(--space-3);
+		margin-left: var(--space-2);
+		border-radius: var(--radius-sm);
+		transition: var(--transition);
+	}
+
+	.beautiful-date-picker::-webkit-calendar-picker-indicator:hover {
+		background-color: rgba(99, 102, 241, 0.1);
+	}
+
+	.loading {
+		text-align: center;
+		padding: var(--space-12);
+		color: rgba(255, 255, 255, 0.8);
+		font-size: 1.2rem;
+		animation: bounceIn 0.6s ease-out;
+	}
+
+	.loading::after {
+		content: '';
+		display: inline-block;
+		width: 24px;
+		height: 24px;
+		margin-left: var(--space-3);
+		border: 3px solid rgba(255, 255, 255, 0.3);
+		border-radius: 50%;
+		border-top-color: white;
+		animation: spin 1s linear infinite;
+	}
+
+	.summary-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+		gap: var(--space-4);
+		margin-bottom: var(--space-6);
+	}
+
+	.summary-card {
+		background: rgba(255, 255, 255, 0.1);
+		backdrop-filter: blur(15px);
+		color: white;
+		padding: var(--space-5);
+		border-radius: var(--radius-lg);
+		text-align: center;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		box-shadow: var(--shadow-md);
+		transition: var(--transition);
+	}
+
+	.summary-card::before {
+		content: none;
+	}
+
+	.summary-card:hover {
+		transform: translateY(-4px);
+		box-shadow: var(--shadow-lg);
+		border-color: rgba(255, 255, 255, 0.3);
+	}
+
+	.summary-card h3 {
+		font-size: 0.85rem;
+		margin-bottom: var(--space-3);
+		opacity: 0.9;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.stat-value {
+		font-size: 2rem;
+		font-weight: 700;
+		margin: 0;
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	/* Active Timers & Time Logs Sections */
+	.active-timers-section,
+	.time-logs-section,
+	.no-running-section {
+		background: rgba(255, 255, 255, 0.08);
+		backdrop-filter: blur(15px);
+		border-radius: var(--radius-xl);
+		padding: var(--space-6);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		box-shadow: var(--shadow-md);
+	}
+
+	.time-logs-section {
+		max-height: 600px;
+		overflow-y: auto;
+	}
+
+	.active-timers-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		margin-bottom: var(--space-6);
+	}
+
+	.active-timer-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: var(--space-5);
+		background: var(--gradient-success);
+		color: white;
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-md);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		transition: var(--transition);
+		animation: pulse-glow 2s ease-in-out infinite alternate;
+	}
+
+	.active-timer-item::before {
+		content: none;
+	}
+
+	.active-timer-item:hover {
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-lg);
+	}
+
+	@keyframes pulse-glow {
+		0% {
+			box-shadow: var(--shadow-lg), 0 0 20px rgba(16, 185, 129, 0.3);
+		}
+		100% {
+			box-shadow: var(--shadow-xl), 0 0 40px rgba(16, 185, 129, 0.6);
+		}
+	}
+
+	.timer-info h4 {
+		margin-bottom: var(--space-2);
+		color: white;
+		font-size: 1.1rem;
+		font-weight: 600;
+	}
+
+	.timer-start {
+		margin: 0;
+		font-size: 0.9rem;
+		opacity: 0.9;
+		font-family: 'Courier New', monospace;
+	}
+
+	.timer-display {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+	}
+
+	.timer-icon {
+		font-size: 1.8rem;
+		animation: spin 3s linear infinite;
+	}
+
+	.timer-duration {
+		font-size: 1.8rem;
+		font-weight: 700;
+		font-family: 'Courier New', monospace;
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	}
+
+	.no-active-tasks {
+		text-align: center;
+		padding: var(--space-8);
+		color: rgba(255, 255, 255, 0.7);
+		background: rgba(255, 255, 255, 0.05);
+		border-radius: var(--radius-lg);
+		border: 1px dashed rgba(255, 255, 255, 0.3);
+		font-style: italic;
+	}
+
+	.time-logs-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	.time-log-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: var(--space-5);
+		background: rgba(255, 255, 255, 0.1);
+		backdrop-filter: blur(15px);
+		border-radius: var(--radius-lg);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		box-shadow: var(--shadow-md);
+		transition: var(--transition);
+		animation: fadeIn 0.6s ease-out;
+	}
+
+	.time-log-item:hover {
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-lg);
+		border-color: rgba(255, 255, 255, 0.4);
+	}
+
+	.log-info h4 {
+		margin-bottom: var(--space-2);
+		color: white;
+		font-weight: 600;
+		font-size: 1.1rem;
+	}
+
+	.log-time {
+		font-size: 0.9rem;
+		color: rgba(255, 255, 255, 0.8);
+		margin: 0;
+		font-family: 'Courier New', monospace;
+	}
+
+	.log-duration {
+		font-weight: 700;
+		color: var(--primary-light);
+		font-size: 1.2rem;
+		font-family: 'Courier New', monospace;
+	}
+
+	.no-logs {
+		text-align: center;
+		padding: var(--space-12);
+		color: rgba(255, 255, 255, 0.7);
+		font-style: italic;
+		font-size: 1.1rem;
+		background: rgba(255, 255, 255, 0.05);
+		border-radius: var(--radius-lg);
+		border: 1px dashed rgba(255, 255, 255, 0.3);
+		animation: fadeIn 0.8s ease-out;
+	}
+
+	/* Responsive Design */
+	@media (max-width: 1200px) {
+		.summary-layout {
+			grid-template-columns: 1fr;
+			gap: var(--space-6);
+		}
+
+		.summary-container {
+			max-width: 1000px;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.summary-page {
+			padding: var(--space-4);
+		}
+
+		.summary-container {
+			padding: var(--space-6);
+		}
+
+		.summary-container h1 {
+			font-size: 1.75rem;
+		}
+
+		.summary-grid {
+			grid-template-columns: 1fr;
+			gap: var(--space-3);
+		}
+
+		.section-title {
+			font-size: 1.25rem;
+		}
+
+		.active-timer-item,
+		.time-log-item {
+			flex-direction: column;
+			align-items: stretch;
+			text-align: center;
+			gap: var(--space-3);
+		}
+	}
+
+	/* Stagger animations for grid items */
+	.summary-card:nth-child(1) { animation-delay: 0.1s; }
+	.summary-card:nth-child(2) { animation-delay: 0.2s; }
+	.summary-card:nth-child(3) { animation-delay: 0.3s; }
+	.summary-card:nth-child(4) { animation-delay: 0.4s; }
+	.summary-card:nth-child(5) { animation-delay: 0.5s; }
+</style>
+
