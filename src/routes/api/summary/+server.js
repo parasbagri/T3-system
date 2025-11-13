@@ -70,7 +70,8 @@ export async function GET({ request, url }) {
 	// Calculate statistics
 	const totalTime = timeLogs.reduce((sum, log) => sum + (log.duration || 0), 0);
 	const completedTasks = allTasks.filter(t => t.status === 'COMPLETED').length;
-	const inProgressTasks = allTasks.filter(t => t.status === 'IN_PROGRESS').length;
+	// In Progress should reflect tasks with active timers
+	const inProgressTasks = new Set(activeTimeLogs.map(log => log.task.id)).size;
 	const pendingTasks = allTasks.filter(t => t.status === 'PENDING').length;
 
 	// Tasks worked on today

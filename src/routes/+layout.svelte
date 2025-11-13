@@ -35,12 +35,13 @@
 			<nav class="navbar">
 				<div class="nav-content">
 					<a href="/" class="nav-logo">Task Timer</a>
-					<div class="nav-links">
-						<a href="/" class="nav-link" class:active={$page.url.pathname === '/'}>Tasks</a>
-						<a href="/summary" class="nav-link" class:active={$page.url.pathname === '/summary'}>Daily Summary</a>
-						<span class="nav-user">Hello, {$user?.name}</span>
-						<a href="/logout" class="nav-link" class:active={$page.url.pathname === '/logout'}>Logout</a>
-					</div>
+				<div class="nav-links">
+					<a href="/" class="nav-link" class:active={$page.url.pathname === '/'}>Tasks</a>
+					<a href="/logs" class="nav-link" class:active={$page.url.pathname === '/logs'}>Time Logs</a>
+					<a href="/summary" class="nav-link" class:active={$page.url.pathname === '/summary'}>Daily Summary</a>
+					<span class="nav-user">Hello, {$user?.name}</span>
+					<a href="/logout" class="nav-link" class:active={$page.url.pathname === '/logout'}>Logout</a>
+				</div>
 				</div>
 			</nav>
 		{/if}

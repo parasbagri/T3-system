@@ -4,23 +4,27 @@
 	import { timerStore } from '$lib/stores.js';
     import './taskItem.css';
 
-	export let task;
+export let task;
 
 	const dispatch = createEventDispatcher();
 
 	let editing = false;
 	let editTitle = task.title;
 	let editDescription = task.description || '';
-	let editStatus = task.status;
-	let startTimeDisplay = '';
-	let stopTimeDisplay = '';
+let editStatus = task.status;
+let startTimeDisplay = '';
+let stopTimeDisplay = '';
+let localTotalTime = task.totalTime || 0;
 
 	// Get timer state from global store
 	$: timerState = $timerStore[task.id];
 	$: isTracking = !!timerState;
 	$: currentTimeLogId = timerState?.timeLogId || null;
-	$: elapsedTime = timerState?.elapsedTime || 0;
-	$: startTime = timerState?.startTime || null;
+$: elapsedTime = timerState?.elapsedTime || 0;
+$: startTime = timerState?.startTime || null;
+$: if (task.totalTime !== undefined) {
+    localTotalTime = task.totalTime;
+}
 
 	$: statusColors = {
 		PENDING: '#f59e0b',
@@ -72,25 +76,28 @@
 		}
 	}
 
-	async function stopTracking() {
-		if (!currentTimeLogId) return;
-
-		try {
-			const stopTime = new Date();
-			const response = await fetch(`/api/time-logs/${currentTimeLogId}/stop`, {
-				method: 'POST'
-			});
-
-			if (response.ok) {
-				stopTimeDisplay = formatDateTime(stopTime);
-				// Use global timer store to stop the timer
-				timerStore.stopTimer(task.id);
-				dispatch('updated');
-			}
-		} catch (error) {
-			console.error('Failed to stop tracking:', error);
-		}
-	}
+async function stopTracking() {
+    try {
+        const stopTime = new Date();
+        const startedAt = startTime;
+        const duration = startedAt ? Math.floor((stopTime - startedAt) / 1000) : 0;
+        stopTimeDisplay = formatDateTime(stopTime);
+        timerStore.stopTimer(task.id);
+        if (duration > 0) {
+            localTotalTime = (localTotalTime || 0) + duration;
+        }
+        if (currentTimeLogId) {
+            const response = await fetch(`/api/time-logs/${currentTimeLogId}/stop`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                dispatch('updated');
+            }
+        }
+    } catch (error) {
+        console.error('Failed to stop tracking:', error);
+    }
+}
 
 	async function saveEdit() {
 		try {
@@ -258,9 +265,9 @@
 						<span class="stop-time">Stopped: {stopTimeDisplay}</span>
 					</div>
 				{/if}
-				{#if task.totalTime > 0}
-					<span class="total-time">Total: {formatTotalTime(task.totalTime)}</span>
-				{/if}
+        {#if localTotalTime > 0}
+            <span class="total-time">Total: {formatTotalTime(localTotalTime)}</span>
+        {/if}
 			</div>
 			<div class="task-actions">
 				{#if task.status === 'COMPLETED'}

@@ -75,7 +75,7 @@
 				<!-- Left Column: Daily Summary Stats -->
 				<div class="summary-left">
 					<div class="summary-section">
-						<h2 class="section-title">📊 Daily Summary</h2>
+						<h2 class="section-title">Daily Summary</h2>
 						
 						<div class="date-selector">
 							<label for="date">Select Date:</label>
@@ -117,7 +117,7 @@
 				<div class="summary-right">
 					{#if summary.activeTimers && summary.activeTimers.length > 0}
 						<div class="active-timers-section">
-							<h2 class="section-title">🔴 Currently Running</h2>
+							<h2 class="section-title">Currently Running</h2>
 							<div class="active-timers-list">
 								{#each summary.activeTimers as timer}
 									<div class="active-timer-item">
@@ -137,7 +137,7 @@
 						</div>
 					{:else}
 						<div class="no-running-section">
-							<h2 class="section-title">🔴 Currently Running</h2>
+							<h2 class="section-title">Currently Running Task Time</h2>
 							<div class="no-active-tasks">
 								<p>No tasks currently running</p>
 							</div>
@@ -146,7 +146,7 @@
 
 					{#if summary.timeLogs.length > 0}
 						<div class="time-logs-section">
-							<h2 class="section-title">⏰ Time Logs</h2>
+							<h2 class="section-title"> All Task Time Logs</h2>
 							<div class="time-logs-list">
 								{#each summary.timeLogs as log}
 									<div class="time-log-item">

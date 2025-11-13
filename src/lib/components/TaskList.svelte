@@ -6,6 +6,13 @@
 
 	let tasks = [];
 	let loading = true;
+    let searchQuery = '';
+    $: visibleTasks = tasks.filter((t) =>
+        (t.title || '')
+            .toString()
+            .toLowerCase()
+            .includes((searchQuery || '').toLowerCase())
+    );
 
 	async function loadTasks() {
 		try {
@@ -41,13 +48,21 @@
 	<div class="tasks-container">
 		<div class="tasks-section">
 			<h2>Your Tasks</h2>
+            <div class="search-row">
+                <input
+                    type="text"
+                    class="search-input"
+                    placeholder="Search tasks by name"
+                    bind:value={searchQuery}
+                />
+            </div>
 			{#if loading}
 				<div class="loading">Loading tasks...</div>
 			{:else if tasks.length === 0}
 				<div class="no-tasks">No tasks yet. Create one!</div>
 			{:else}
 				<div class="tasks-list">
-					{#each tasks as task (task.id)}
+					{#each visibleTasks as task (task.id)}
 						<TaskItem
 							{task}
 							on:updated={handleTaskUpdated}
@@ -74,6 +89,24 @@
 		font-weight: 700;
 		text-align: center;
 	}
+
+    .search-row {
+        display: flex;
+        justify-content: center;
+        margin-bottom: var(--space-4);
+    }
+
+    .search-input {
+        width: 100%;
+        max-width: 480px;
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-primary);
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+        outline: none;
+    }
+    .search-input::placeholder { color: var(--text-muted); }
 
 	.loading,
 	.no-tasks {
