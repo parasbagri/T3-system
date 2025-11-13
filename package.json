@@ -8,10 +8,7 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
-		"db:migrate": "prisma migrate dev",
-		"db:generate": "prisma generate",
-		"db:studio": "prisma studio",
-		"db:seed": "prisma db seed"
+		"db:generate": "prisma generate"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.0",

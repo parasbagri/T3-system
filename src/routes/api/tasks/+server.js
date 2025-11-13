@@ -18,21 +18,30 @@ export async function GET({ request }) {
 	const tasks = await prisma.task.findMany({
 		where: { userId },
 		include: {
-			timeLogs: {
-				where: {
-					endTime: { not: null }
-				}
-			}
+			timeLogs: true // Include all time logs
 		},
 		orderBy: { createdAt: 'desc' }
 	});
 
-	// Calculate total time for each task
+	// Calculate total time for each task and include active timer info
 	const tasksWithTime = tasks.map(task => {
-		const totalTime = task.timeLogs.reduce((sum, log) => sum + (log.duration || 0), 0);
+		// Separate completed and active time logs
+		const completedLogs = task.timeLogs.filter(log => log.endTime !== null);
+		const activeLogs = task.timeLogs.filter(log => log.endTime === null);
+		
+		const totalTime = completedLogs.reduce((sum, log) => sum + (log.duration || 0), 0);
+		const activeTimer = activeLogs.length > 0 
+			? activeLogs.sort((a, b) => new Date(b.startTime) - new Date(a.startTime))[0]
+			: null;
+		
 		return {
 			...task,
-			totalTime
+			timeLogs: completedLogs, // Only return completed logs for backward compatibility
+			totalTime,
+			activeTimeLog: activeTimer ? {
+				id: activeTimer.id,
+				startTime: activeTimer.startTime
+			} : null
 		};
 	});
 
