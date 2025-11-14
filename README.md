@@ -2,92 +2,71 @@
 
 A full-stack task management application built with SvelteKit that allows users to manage tasks, track time using a real-time timer, and view daily productivity summaries.
 
+## Authentication
+
+- ✔ Fully working auth (Signup, Login, Logout, Protected Routes)
+- ✔ Optional test credentials for quicker review:
+  - Email: `alice@example.com`
+  - Password: `password123`
+
 ## Features
 
-### ✅ Authentication
-- User registration and login
-- Secure password hashing with bcrypt
-- JWT-based session management
-- Protected routes and API endpoints
-
-### ✅ Task Management
-- Create tasks with natural language input
-- AI-powered task enhancement (optional - requires OpenAI API key)
-- View all tasks
-- Edit task details (title, description, status)
-- Update task status: Pending, In Progress, Completed
-- Delete tasks
-
-### ✅ Real-Time Time Tracking
-- Start/stop timer for each task
-- Real-time elapsed time display
-- Automatic time log creation
-- View total time spent on each task
-- View all time logs
-
-### ✅ Daily Summary
-- View summary for any date
-- Total time tracked
-- Completed tasks count
-- In-progress and pending tasks
-- Tasks worked on
-- Detailed time log list
+- Create, edit, complete, and delete tasks
+- Real-time timer with automatic time log creation
+- Daily summary dashboard by date
+- Case-insensitive search bars on Tasks and Time Logs pages
+- Optional AI-powered task enhancement
 
 ## Tech Stack
 
-- **Frontend/Backend**: SvelteKit
-- **Database**: SQLite with Prisma ORM
-- **Authentication**: JWT tokens with httpOnly cookies
-- **Validation**: Zod
-- **Date Handling**: Day.js
-- **AI Enhancement**: OpenAI API (optional)
+- `SvelteKit` for frontend and backend
+- `PostgreSQL` with `Prisma ORM`
+- `JWT` auth stored in httpOnly cookies
+- `bcrypt` for password hashing
+- `Zod` for validation
+- `Day.js` for date/time formatting
 
-## Setup Instructions
+## Setup Instructions (Local Development)
 
-### 1. Install Dependencies
+1. Install dependencies
 
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-### 2. Set Up Environment Variables
+2. Configure environment variables
 
-Create a `.env` file in the root directory:
+   Create a `.env` file at the project root:
 
-```env
-DATABASE_URL="file:./prisma/dev.db"
-JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
-OPENAI_API_KEY=""
-```
+   ```env
+   DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/task_timer"
+   JWT_SECRET="replace-with-a-strong-random-string"
+   OPENAI_API_KEY="" # optional
+   ```
 
-**Note**: 
-- Replace `JWT_SECRET` with a strong random string in production
-- Add your OpenAI API key if you want to use AI task enhancement (optional)
+   - Ensure a local PostgreSQL database exists that matches `DATABASE_URL`
 
-### 3. Set Up Database
+3. Generate Prisma client and run migrations
 
-```bash
-# Generate Prisma Client
-npm run db:generate
+   ```bash
+   npm run db:generate
+   npx prisma migrate dev
+   ```
 
-# Run database migrations
-npm run db:migrate
-```
+4. Start the development server
 
-### 4. Start Development Server
+   ```bash
+   npm run dev
+   ```
 
-```bash
-npm run dev
-```
-
-The app will be available at `http://localhost:5173`
+   App runs at `http://localhost:5173`.
 
 ## Project Structure
 
 ```
 task-timer-app/
 ├── prisma/
-│   └── schema.prisma          # Database schema
+│   └── schema.prisma          # Database schema (PostgreSQL)
 ├── src/
 │   ├── lib/
 │   │   ├── components/        # Reusable Svelte components
@@ -107,6 +86,7 @@ task-timer-app/
 │       ├── login/             # Login page
 │       ├── register/          # Registration page
 │       ├── summary/           # Daily summary page
+│       ├── logs/              # Time logs page
 │       └── +page.svelte       # Main tasks page
 └── package.json
 ```
@@ -114,61 +94,77 @@ task-timer-app/
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/logout` - Logout user
-- `GET /api/auth/me` - Get current user
+- `POST /api/auth/register` – Register new user
+- `POST /api/auth/login` – Login user
+- `POST /api/auth/logout` – Logout user
+- `GET /api/auth/me` – Get current user
 
 ### Tasks
-- `GET /api/tasks` - Get all user tasks
-- `POST /api/tasks` - Create new task
-- `GET /api/tasks/[id]` - Get task by ID
-- `PUT /api/tasks/[id]` - Update task
-- `DELETE /api/tasks/[id]` - Delete task
-- `POST /api/tasks/ai-enhance` - Enhance task with AI
+- `GET /api/tasks` – Get all user tasks
+- `POST /api/tasks` – Create new task
+- `GET /api/tasks/[id]` – Get task by ID
+- `PUT /api/tasks/[id]` – Update task
+- `DELETE /api/tasks/[id]` – Delete task
+- `POST /api/tasks/ai-enhance` – Enhance task with AI
 
 ### Time Logs
-- `GET /api/time-logs` - Get all user time logs
-- `POST /api/time-logs` - Start time tracking
-- `POST /api/time-logs/[id]/stop` - Stop time tracking
+- `GET /api/time-logs` – Get all user time logs
+- `POST /api/time-logs` – Start time tracking
+- `POST /api/time-logs/[id]/stop` – Stop time tracking
+- `DELETE /api/time-logs/[id]` – Delete a log
 
 ### Summary
-- `GET /api/summary?date=YYYY-MM-DD` - Get daily summary
+- `GET /api/summary?date=YYYY-MM-DD` – Get daily summary
+
+## 📸 Screenshots & Page Descriptions
+
+### Login
+![Login](assets/login.png)
+- Purpose: Authenticate existing users
+- Features: Email and password login, link to signup
+- Actions: Enter credentials and click `Login`
+
+### Signup
+- Purpose: Create a new account
+- Features: Name, email, password inputs
+- Actions: Submit to register and auto-login
+
+### Tasks
+![Tasks](assets/tasks.png)
+- Purpose: Manage all tasks
+- Features: Create task form, list of tasks, status badges, start/stop timer, edit/delete, complete
+- Actions: Create, start/stop, edit, complete, delete tasks
+
+#### Tasks – Search
+![Tasks Search](assets/tasks-search.png)
+- Purpose: Quickly locate tasks
+- Features: Case-insensitive real-time filtering by title
+- Actions: Type in the search bar to filter visible task cards
+
+### Time Logs
+![Time Logs](assets/time-logs.png)
+- Purpose: Review tracked time grouped by task
+- Features: Task cards with logs, per-log duration, delete log, delete task, search bar filtering task cards by name
+- Actions: Use search to show only matching task cards and their logs
+
+### Daily Summary
+![Daily Summary](assets/daily-summary.png)
+- Purpose: View productivity metrics for a selected date
+- Features: Total time tracked, completed tasks count, lists of tasks and logs
+- Actions: Pick a date to update summary
 
 ## Usage
 
-1. **Register/Login**: Create an account or login with existing credentials
-2. **Create Tasks**: Use the form to create tasks. Optionally use AI enhancement for better task titles and descriptions
-3. **Track Time**: Click "Start" on any task to begin tracking time. Click "Stop" to end the session
-4. **Manage Tasks**: Edit task details, change status, or delete tasks
-5. **View Summary**: Navigate to Daily Summary to see your productivity metrics
+1. Register or login (or use test credentials above)
+2. Create tasks and optionally enhance with AI
+3. Start/stop timers to create time logs
+4. Use search on Tasks/Time Logs to filter by task name
+5. View the Daily Summary for any date
 
-## Database Schema
-
-- **User**: id, email, password, name, createdAt, updatedAt
-- **Task**: id, title, description, status, userId, createdAt, updatedAt
-- **TimeLog**: id, taskId, userId, startTime, endTime, duration, createdAt, updatedAt
-
-## Security Features
+## Security
 
 - Password hashing with bcrypt
-- JWT tokens stored in httpOnly cookies
-- User authorization checks on all protected endpoints
-- Input validation with Zod schemas
-- SQL injection protection via Prisma ORM
-
-## Development
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run db:migrate` - Run database migrations
-- `npm run db:generate` - Generate Prisma client
-- `npm run db:studio` - Open Prisma Studio
-
-## Notes
-
-- The app uses SQLite for simplicity. For production, consider PostgreSQL or MySQL
-- AI enhancement is optional and works without an API key (uses simple fallback)
-- All time tracking is stored in seconds
-- The daily summary can be viewed for any past date
+- JWT tokens in httpOnly cookies
+- Authorization checks on protected endpoints
+- Validation with Zod
+- Prisma ORM safeguards
